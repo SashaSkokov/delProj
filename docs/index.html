@@ -444,12 +444,12 @@
 
         // Подтверждение записи
         function confirmBooking() {
+            console.log("confirmBooking called", selectedDate, selectedTime);
             const data = {
                 date: formatDateForAPI(selectedDate),
                 time: selectedTime
             };
-
-            // Отправляем данные в бота
+            console.log("sendData", data);
             tg.sendData(JSON.stringify(data));
         }
 
