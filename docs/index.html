@@ -52,7 +52,6 @@
             margin-bottom: 24px;
         }
 
-        /* Скрытие шагов */
         .step {
             display: none;
             animation: slideIn 0.3s ease-out;
@@ -73,7 +72,6 @@
             }
         }
 
-        /* Стилизация календаря */
         .date-input-wrapper {
             position: relative;
             margin: 20px 0;
@@ -92,7 +90,6 @@
             font-weight: 500;
         }
 
-        /* Flatpickr кастомизация под Telegram */
         .flatpickr-calendar {
             background: var(--tg-theme-bg-color) !important;
             border-radius: 12px !important;
@@ -112,7 +109,6 @@
             background: var(--tg-theme-secondary-bg-color) !important;
         }
 
-        /* Временные слоты */
         .time-slots {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -155,7 +151,6 @@
             pointer-events: none;
         }
 
-        /* Подтверждение */
         .summary {
             background: var(--tg-theme-secondary-bg-color);
             padding: 20px;
@@ -185,7 +180,6 @@
             color: var(--tg-theme-button-color);
         }
 
-        /* Кнопки навигации */
         .nav-button {
             width: 100%;
             padding: 16px;
@@ -213,7 +207,6 @@
             transform: scale(0.98);
         }
 
-        /* Loader */
         .loader {
             text-align: center;
             padding: 40px;
@@ -323,12 +316,10 @@
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ru.js"></script>
 
     <script>
-        // Инициализация Telegram WebApp
         const tg = window.Telegram.WebApp;
         tg.expand();
         tg.ready();
 
-        // Применяем тему Telegram
         document.documentElement.style.setProperty('--tg-theme-bg-color', tg.themeParams.bg_color || '#ffffff');
         document.documentElement.style.setProperty('--tg-theme-text-color', tg.themeParams.text_color || '#000000');
         document.documentElement.style.setProperty('--tg-theme-button-color', tg.themeParams.button_color || '#3390ec');
@@ -338,7 +329,6 @@
         let selectedTime = null;
         let occupiedSlots = [];
 
-        // Инициализация календаря Flatpickr
         const calendar = flatpickr("#dateInput", {
             locale: "ru",
             inline: false,
@@ -346,7 +336,6 @@
             dateFormat: "d.m.Y",
             disable: [
                 function(date) {
-                    // Блокируем выходные (0 = воскресенье, 6 = суббота)
                     return (date.getDay() === 0 || date.getDay() === 6);
                 }
             ],
@@ -358,7 +347,6 @@
             }
         });
 
-        // Загрузка временных слотов
         async function loadTimeSlots() {
             goToStep(2);
 
@@ -370,18 +358,10 @@
             document.getElementById('timeSlots').style.display = 'none';
 
             try {
-                // ВАЖНО: Замени на свой API URL
                 const apiUrl = `https://your-api.com/api/slots?date=${dateStr}`;
 
-                // Для теста используем моковые данные
-                // В продакшене раскомментируй строку выше и закомментируй строку ниже
-                await new Promise(resolve => setTimeout(resolve, 500)); // Имитация задержки
-                occupiedSlots = ['10:00', '14:00', '16:00']; // Мок данные
-
-                // Реальный запрос:
-                // const response = await fetch(apiUrl);
-                // const data = await response.json();
-                // occupiedSlots = data.occupied || [];
+                await new Promise(resolve => setTimeout(resolve, 500));
+                occupiedSlots = ['10:00', '14:00', '16:00'];
 
                 renderTimeSlots();
             } catch (error) {
@@ -391,7 +371,6 @@
             }
         }
 
-        // Отрисовка временных слотов
         function renderTimeSlots() {
             const container = document.getElementById('timeSlots');
             container.innerHTML = '';
@@ -423,18 +402,14 @@
             container.style.display = 'grid';
         }
 
-        // Выбор времени
         function selectTime(time) {
-            // Убираем выделение с других
             document.querySelectorAll('.time-slot').forEach(s => {
                 s.classList.remove('selected');
             });
 
-            // Выделяем выбранный
             event.target.classList.add('selected');
             selectedTime = time;
 
-            // Переходим к подтверждению
             setTimeout(() => {
                 document.getElementById('confirmDate').textContent = formatDateDisplay(selectedDate);
                 document.getElementById('confirmTime').textContent = selectedTime;
@@ -442,7 +417,6 @@
             }, 300);
         }
 
-        // Подтверждение записи
         function confirmBooking() {
             console.log("confirmBooking called", selectedDate, selectedTime);
             const data = {
@@ -453,7 +427,6 @@
             tg.sendData(JSON.stringify(data));
         }
 
-        // Переключение шагов
         function goToStep(stepNumber) {
             document.querySelectorAll('.step').forEach(step => {
                 step.classList.remove('active');
@@ -461,7 +434,6 @@
             document.getElementById(`step${stepNumber}`).classList.add('active');
         }
 
-        // Форматирование даты для API (YYYY-MM-DD)
         function formatDateForAPI(date) {
             const year = date.getFullYear();
             const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -469,7 +441,6 @@
             return `${year}-${month}-${day}`;
         }
 
-        // Форматирование даты для отображения
         function formatDateDisplay(date) {
             const days = ['воскресенье', 'понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота'];
             const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
@@ -478,8 +449,9 @@
             return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}, ${days[date.getDay()]}`;
         }
 
-        // Настройка главной кнопки Telegram
-        tg.MainButton.onClick(confirmBooking);
+        // ВАЖНО: код ниже был удалён, чтобы не показывать системную MainButton
+        // tg.MainButton.setText('Подтвердить').show();
+        // tg.MainButton.onClick(confirmBooking);
     </script>
 </body>
 </html>
