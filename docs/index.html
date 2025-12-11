@@ -305,7 +305,9 @@
                 </div>
             </div>
 
-
+            <button class="nav-button primary" onclick="confirmBooking()">
+                ✅ Подтвердить запись
+            </button>
 
             <button class="nav-button secondary" onclick="goToStep(2)">
                 ← Изменить время
@@ -477,7 +479,6 @@
         }
 
         // Настройка главной кнопки Telegram
-        tg.MainButton.setText('Подтвердить').show();
         tg.MainButton.onClick(confirmBooking);
     </script>
 </body>
