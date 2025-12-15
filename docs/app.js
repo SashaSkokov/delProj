@@ -58,20 +58,9 @@ async function loadSlots14Days() {
   }
 }
 
-function getDisabledDates() {
-  const disabled = [];
-  for (const [date, arr] of slotsByDate.entries()) {
-    const hasFree = arr.some(x => x.status === STATUS_FREE);
-    if (!hasFree) disabled.push(date); // "YYYY-MM-DD"
-  }
-  return disabled;
-}
-
 function getOccupiedTimes(dateStr) {
   const arr = slotsByDate.get(dateStr) || [];
-  return arr
-    .filter(x => x.status !== STATUS_FREE)
-    .map(x => x.time);
+  return arr.filter(x => x.status !== STATUS_FREE).map(x => x.time);
 }
 
 function goToStep(n) {
@@ -112,18 +101,14 @@ function selectTime(time, event) {
 
   selectedTime = time;
 
-  setTimeout(() => {
-    document.getElementById("confirmDate").textContent = formatDateDisplay(selectedDate);
-    document.getElementById("confirmTime").textContent = selectedTime;
-    goToStep(3);
-  }, 150);
+  // Без задержки — сразу показываем подтверждение
+  document.getElementById("confirmDate").textContent = formatDateDisplay(selectedDate);
+  document.getElementById("confirmTime").textContent = selectedTime;
+  goToStep(3);
 }
 
 async function loadTimeSlots() {
   goToStep(2);
-
-  // На всякий случай обновляем слоты ещё раз прямо перед показом времени
-  await loadSlots14Days();
 
   const dateStr = formatDateForAPI(selectedDate);
 
@@ -153,9 +138,7 @@ window.goToStep = goToStep;
       inline: false,
       minDate: "today",
       dateFormat: "d.m.Y",
-      disable: [
-        (date) => date.getDay() === 0 || date.getDay() === 6, // выходные
-      ],
+      disable: [(date) => date.getDay() === 0 || date.getDay() === 6],
       onChange: async (selectedDates) => {
         if (selectedDates.length === 0) return;
 
@@ -164,7 +147,6 @@ window.goToStep = goToStep;
         // Ключевое: обновляем расписание при каждом выборе даты
         await loadSlots14Days();
 
-        // Если на выбранную дату вообще нет свободных — просто сообщим
         const dateStr = formatDateForAPI(selectedDate);
         const arr = slotsByDate.get(dateStr) || [];
         const hasFree = arr.some(x => x.status === STATUS_FREE);
