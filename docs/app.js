@@ -16,9 +16,7 @@ document.documentElement.style.setProperty("--tg-theme-button-text-color", tg.th
 let selectedDate = null;
 let selectedTime = null;
 let occupiedSlots = [];
-
-// кеш слотов: date -> [{time,status}]
-let slotsByDate = new Map();
+let slotsByDate = new Map(); // date -> [{time,status}]
 
 function iso(date) {
   const y = date.getFullYear();
@@ -28,7 +26,7 @@ function iso(date) {
 }
 
 function formatDateForAPI(date) {
-  return iso(date); // YYYY-MM-DD
+  return iso(date);
 }
 
 function formatDateDisplay(date) {
@@ -62,7 +60,7 @@ function getDisabledDates() {
   const disabled = [];
   for (const [date, arr] of slotsByDate.entries()) {
     const hasFree = arr.some(x => x.status === "free");
-    if (!hasFree) disabled.push(date); // YYYY-MM-DD
+    if (!hasFree) disabled.push(date);
   }
   return disabled;
 }
@@ -117,23 +115,12 @@ function selectTime(time, event) {
   }, 150);
 }
 
-// IMPORTANT: чтобы кнопка из HTML работала как раньше
-window.confirmBooking = function confirmBooking() {
-  const data = {
-    date: formatDateForAPI(selectedDate),
-    time: selectedTime,
-  };
-  tg.sendData(JSON.stringify(data));
-};
-
-window.goToStep = goToStep;
-
 async function loadTimeSlots() {
   goToStep(2);
 
   const dateStr = formatDateForAPI(selectedDate);
-
   document.getElementById("selectedDateDisplay").textContent = formatDateDisplay(selectedDate);
+
   document.getElementById("loadingSlots").style.display = "block";
   document.getElementById("timeSlots").style.display = "none";
 
@@ -141,11 +128,17 @@ async function loadTimeSlots() {
   renderTimeSlots();
 }
 
-// Инициализация календаря только после загрузки слотов
+// Чтобы работали onclick="confirmBooking()" и onclick="goToStep(...)"
+window.confirmBooking = function () {
+  const data = { date: formatDateForAPI(selectedDate), time: selectedTime };
+  tg.sendData(JSON.stringify(data));
+};
+window.goToStep = goToStep;
+
+// Инициализация календаря
 (async () => {
   try {
     await loadSlots14Days();
-
     const disabledDates = getDisabledDates();
 
     flatpickr("#dateInput", {
@@ -154,8 +147,8 @@ async function loadTimeSlots() {
       minDate: "today",
       dateFormat: "d.m.Y",
       disable: [
-        (date) => date.getDay() === 0 || date.getDay() === 6, // выходные
-        ...disabledDates, // дни без free слотов
+        (date) => date.getDay() === 0 || date.getDay() === 6,
+        ...disabledDates
       ],
       onChange: (selectedDates) => {
         if (selectedDates.length > 0) {
