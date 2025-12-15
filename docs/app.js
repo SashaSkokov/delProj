@@ -7,7 +7,7 @@ const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzIKdC0iGVD4Qiq
 const READ_TOKEN = "4Hd2gCErhTJZwli_a3WWjPb6zlkYsxmMsxCOg5cz5uM";
 // ====================
 
-// Тема из Telegram
+// Telegram theme
 document.documentElement.style.setProperty("--tg-theme-bg-color", tg.themeParams.bg_color || "#ffffff");
 document.documentElement.style.setProperty("--tg-theme-text-color", tg.themeParams.text_color || "#000000");
 document.documentElement.style.setProperty("--tg-theme-button-color", tg.themeParams.button_color || "#3390ec");
@@ -15,8 +15,10 @@ document.documentElement.style.setProperty("--tg-theme-button-text-color", tg.th
 
 let selectedDate = null;
 let selectedTime = null;
-let occupiedSlots = [];
-let slotsByDate = new Map(); // date -> [{time,status}]
+let occupiedSlots = []; // ["09:00", ...]
+let slotsByDate = new Map(); // "YYYY-MM-DD" -> [{time,status}]
+
+const STATUS_FREE = "свободно";
 
 function iso(date) {
   const y = date.getFullYear();
@@ -49,7 +51,7 @@ async function loadSlots14Days() {
   for (const s of (data.slots || [])) {
     const date = s.date;
     const time = s.time;
-    const status = (s.status || "").toLowerCase();
+    const status = String(s.status || "").toLowerCase();
 
     if (!slotsByDate.has(date)) slotsByDate.set(date, []);
     slotsByDate.get(date).push({ time, status });
@@ -59,15 +61,17 @@ async function loadSlots14Days() {
 function getDisabledDates() {
   const disabled = [];
   for (const [date, arr] of slotsByDate.entries()) {
-    const hasFree = arr.some(x => x.status === "free");
-    if (!hasFree) disabled.push(date);
+    const hasFree = arr.some(x => x.status === STATUS_FREE);
+    if (!hasFree) disabled.push(date); // "YYYY-MM-DD"
   }
   return disabled;
 }
 
 function getOccupiedTimes(dateStr) {
   const arr = slotsByDate.get(dateStr) || [];
-  return arr.filter(x => x.status !== "free").map(x => x.time);
+  return arr
+    .filter(x => x.status !== STATUS_FREE)
+    .map(x => x.time);
 }
 
 function goToStep(n) {
@@ -81,7 +85,7 @@ function renderTimeSlots() {
 
   const times = ["09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00"];
 
-  times.forEach((time) => {
+  for (const time of times) {
     const slot = document.createElement("div");
     slot.className = "time-slot";
 
@@ -96,7 +100,7 @@ function renderTimeSlots() {
     }
 
     container.appendChild(slot);
-  });
+  }
 
   document.getElementById("loadingSlots").style.display = "none";
   container.style.display = "grid";
@@ -118,9 +122,12 @@ function selectTime(time, event) {
 async function loadTimeSlots() {
   goToStep(2);
 
-  const dateStr = formatDateForAPI(selectedDate);
-  document.getElementById("selectedDateDisplay").textContent = formatDateDisplay(selectedDate);
+  // На всякий случай обновляем слоты ещё раз прямо перед показом времени
+  await loadSlots14Days();
 
+  const dateStr = formatDateForAPI(selectedDate);
+
+  document.getElementById("selectedDateDisplay").textContent = formatDateDisplay(selectedDate);
   document.getElementById("loadingSlots").style.display = "block";
   document.getElementById("timeSlots").style.display = "none";
 
@@ -128,18 +135,18 @@ async function loadTimeSlots() {
   renderTimeSlots();
 }
 
-// Чтобы работали onclick="confirmBooking()" и onclick="goToStep(...)"
+// Чтобы работали inline onclick из HTML
 window.confirmBooking = function () {
   const data = { date: formatDateForAPI(selectedDate), time: selectedTime };
   tg.sendData(JSON.stringify(data));
 };
+
 window.goToStep = goToStep;
 
 // Инициализация календаря
 (async () => {
   try {
     await loadSlots14Days();
-    const disabledDates = getDisabledDates();
 
     flatpickr("#dateInput", {
       locale: "ru",
@@ -147,14 +154,26 @@ window.goToStep = goToStep;
       minDate: "today",
       dateFormat: "d.m.Y",
       disable: [
-        (date) => date.getDay() === 0 || date.getDay() === 6,
-        ...disabledDates
+        (date) => date.getDay() === 0 || date.getDay() === 6, // выходные
       ],
-      onChange: (selectedDates) => {
-        if (selectedDates.length > 0) {
-          selectedDate = selectedDates[0];
-          loadTimeSlots();
+      onChange: async (selectedDates) => {
+        if (selectedDates.length === 0) return;
+
+        selectedDate = selectedDates[0];
+
+        // Ключевое: обновляем расписание при каждом выборе даты
+        await loadSlots14Days();
+
+        // Если на выбранную дату вообще нет свободных — просто сообщим
+        const dateStr = formatDateForAPI(selectedDate);
+        const arr = slotsByDate.get(dateStr) || [];
+        const hasFree = arr.some(x => x.status === STATUS_FREE);
+        if (!hasFree) {
+          tg.showAlert("❌ На выбранную дату нет свободных слотов.");
+          return;
         }
+
+        await loadTimeSlots();
       },
     });
   } catch (e) {
