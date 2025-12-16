@@ -16,6 +16,7 @@ document.documentElement.style.setProperty("--tg-theme-button-text-color", tg.th
 
 const STATUS_FREE = "свободно";
 const TIMES = ["09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00"];
+const LOADING_TEXT = "⏳ Загружаем слоты";
 
 let fp = null;
 let selectedDate = null;
@@ -24,8 +25,11 @@ let selectedTime = null;
 let occupiedSlots = [];
 let slotsByDate = new Map();
 
-// защита от повторных выборов даты во время загрузки слотов
-let dateSelectionLocked = false;
+// защита от повторных выборов даты во время загрузки
+let dateBusy = false;
+
+// только один “таймер точек”
+let dotsTimer = null;
 
 function iso(date) {
   const y = date.getFullYear();
@@ -49,53 +53,53 @@ function goToStep(n) {
   document.getElementById(`step${n}`).classList.add("active");
 }
 
-function setDatePickerLocked(locked, message = "") {
+function startDots(messageBase) {
+  stopDots();
+  let dots = 0;
+  const hint = document.getElementById("dateLockHint");
+  if (hint) hint.textContent = `${messageBase}...`;
+
+  dotsTimer = setInterval(() => {
+    dots = (dots + 1) % 4; // 0..3
+    const suffix = ".".repeat(dots) || ".";
+    const h = document.getElementById("dateLockHint");
+    if (h) h.textContent = `${messageBase}${suffix}`;
+  }, 300);
+}
+
+function stopDots() {
+  if (dotsTimer) {
+    clearInterval(dotsTimer);
+    dotsTimer = null;
+  }
+}
+
+function setDateLocked(locked) {
   const input = document.getElementById("dateInput");
   const hint = document.getElementById("dateLockHint");
   if (!input || !hint) return;
 
   if (locked) {
     input.setAttribute("disabled", "disabled");
-    hint.textContent = message || "⏳ Загрузка…";
     hint.style.display = "block";
-    if (fp) fp.set("clickOpens", false);
+    startDots(LOADING_TEXT);
+    if (fp) fp.set("clickOpens", false); // чтобы календарь не открывался кликом [file:503]
   } else {
     input.removeAttribute("disabled");
     hint.style.display = "none";
+    stopDots();
     if (fp) fp.set("clickOpens", true);
   }
 }
 
-// “аккуратный” лоад: минимум minMs, максимум maxMs, и точки вместо таймера
-function delay(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+function showTimeLoading() {
+  document.getElementById("loadingSlots").style.display = "block";
+  document.getElementById("timeSlots").style.display = "none";
 }
 
-async function lockUiWhile(promise, opts = {}) {
-  const minMs = opts.minMs ?? 600;
-  const maxMs = opts.maxMs ?? 5000;
-  const message = opts.message ?? "⏳ Загрузка…";
-
-  setDatePickerLocked(true, message);
-
-  let dots = 0;
-  const dotTimer = setInterval(() => {
-    dots = (dots + 1) % 4;
-    const suffix = ".".repeat(dots);
-    const hint = document.getElementById("dateLockHint");
-    if (hint) hint.textContent = `${message}${suffix}`;
-  }, 250);
-
-  const start = Date.now();
-  try {
-    await Promise.race([promise, delay(maxMs)]);
-  } finally {
-    const spent = Date.now() - start;
-    const left = Math.max(0, minMs - spent);
-    if (left > 0) await delay(left);
-    clearInterval(dotTimer);
-    setDatePickerLocked(false);
-  }
+function showTimeGrid() {
+  document.getElementById("loadingSlots").style.display = "none";
+  document.getElementById("timeSlots").style.display = "grid";
 }
 
 async function loadSlots14Days() {
@@ -105,7 +109,7 @@ async function loadSlots14Days() {
   const to = iso(toDate);
 
   const url = `${APPS_SCRIPT_URL}?token=${encodeURIComponent(READ_TOKEN)}&from=${from}&to=${to}`;
-  const res = await fetch(url);
+  const res = await fetch(url, { cache: "no-store" });
   const data = await res.json();
 
   slotsByDate.clear();
@@ -165,8 +169,7 @@ function renderTimeSlots() {
     container.appendChild(slot);
   }
 
-  document.getElementById("loadingSlots").style.display = "none";
-  container.style.display = "grid";
+  showTimeGrid();
 }
 
 function selectTime(time, event) {
@@ -180,22 +183,20 @@ function selectTime(time, event) {
 }
 
 async function loadTimeSlotsForSelectedDate() {
-  // тут как раз “логика программы”: пока слоты грузятся, дату менять нельзя
+  // показываем шаг 2 + лоадер мгновенно (до fetch), чтобы не было ощущения “зависло”
   goToStep(2);
+  document.getElementById("selectedDateDisplay").textContent = formatDateDisplay(selectedDate);
+  showTimeLoading();
 
   const dateStr = formatDateForAPI(selectedDate);
-
-  document.getElementById("selectedDateDisplay").textContent = formatDateDisplay(selectedDate);
-  document.getElementById("loadingSlots").style.display = "block";
-  document.getElementById("timeSlots").style.display = "none";
-
-  // в нашем случае occupiedSlots уже готовы (мы их считаем из slotsByDate),
-  // но render всё равно не мгновенный — держим lock до полной отрисовки
   occupiedSlots = getOccupiedTimes(dateStr);
+
+  // отрисовка (после расчёта)
   renderTimeSlots();
 }
 
 window.confirmBooking = async function () {
+  // перепроверка перед отправкой
   await loadSlots14Days();
   applyDisabledDates();
 
@@ -221,57 +222,57 @@ window.goToStep = goToStep;
       disableMobile: true,
       disable: [(date) => date.getDay() === 0 || date.getDay() === 6],
       onOpen: async () => {
-        // если уже идёт загрузка слотов (после выбора даты) — не даём открыть календарь
-        if (dateSelectionLocked) return;
-
-        const p = loadSlots14Days().then(() => applyDisabledDates());
-        await lockUiWhile(p, { minMs: 400, maxMs: 5000, message: "⏳ Обновляем календарь" });
+        // обновляем disable-дни при открытии (без лока, чтобы не мешать UX)
+        if (dateBusy) return;
+        await loadSlots14Days();
+        applyDisabledDates();
       },
       onChange: async (selectedDates) => {
         if (selectedDates.length === 0) return;
+        if (dateBusy) return;
 
-        // защита от повторного выбора даты, пока грузим/рисуем слоты
-        if (dateSelectionLocked) return;
-
-        dateSelectionLocked = true;
+        dateBusy = true;
+        setDateLocked(true); // единственная надпись “⏳ Загружаем слоты...”
         try {
           selectedDate = selectedDates[0];
           selectedTime = null;
 
-          // сразу уводим на шаг 2, и пока он грузится — календарь блокируем
-          // делаем одной “транзакцией”: обновить данные -> обновить disable -> показать слоты
-          const job = (async () => {
-            await loadSlots14Days();
-            applyDisabledDates();
+          // 1) сразу показываем шаг 2 и лоадер (чтобы действие было моментальным)
+          goToStep(2);
+          document.getElementById("selectedDateDisplay").textContent = formatDateDisplay(selectedDate);
+          showTimeLoading();
 
-            const dateStr = formatDateForAPI(selectedDate);
-            const arr = slotsByDate.get(dateStr) || [];
-            const hasFree = arr.some(x => x.status === STATUS_FREE);
-            if (!hasFree) {
-              // сброс выбранной даты, чтобы пользователь не остался “в странном состоянии”
-              fp.clear();
-              selectedDate = null;
-              tg.showAlert("❌ На выбранную дату нет свободных слотов.");
-              goToStep(1);
-              return;
-            }
+          // 2) грузим данные и обновляем календарь (это самое долгое место)
+          await loadSlots14Days();
+          applyDisabledDates();
 
-            await loadTimeSlotsForSelectedDate();
-          })();
+          // 3) проверяем что на дату есть свободные слоты
+          const dateStr = formatDateForAPI(selectedDate);
+          const arr = slotsByDate.get(dateStr) || [];
+          const hasFree = arr.some(x => x.status === STATUS_FREE);
+          if (!hasFree) {
+            fp.clear();
+            selectedDate = null;
+            tg.showAlert("❌ На выбранную дату нет свободных слотов.");
+            goToStep(1);
+            return;
+          }
 
-          await lockUiWhile(job, { minMs: 600, maxMs: 5000, message: "⏳ Загружаем слоты" });
+          // 4) рисуем слоты и сразу после этого разблокируем выбор даты
+          await loadTimeSlotsForSelectedDate();
         } finally {
-          dateSelectionLocked = false;
+          setDateLocked(false); // как только слоты показаны — дата снова активна
+          dateBusy = false;
         }
       },
     });
 
-    // первичная загрузка при входе
-    const p0 = loadSlots14Days().then(() => applyDisabledDates());
-    await lockUiWhile(p0, { minMs: 1000, maxMs: 5000, message: "⏳ Подготовка календаря" });
+    // первичная загрузка (без надписей “подготовка” — ты просил только про слоты)
+    await loadSlots14Days();
+    applyDisabledDates();
   } catch (e) {
     console.error(e);
-    setDatePickerLocked(false);
+    setDateLocked(false);
     tg.showAlert("❌ Не удалось загрузить расписание.");
   }
 })();
