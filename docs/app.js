@@ -4,7 +4,7 @@ tg.expand();
 tg.ready();
 
 // === ВСТАВЬ СЮДА ===
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzIKdC0iGVD4QiqShUKjPykCk58XDfgLIOpfFagkiy5RnUVTFZEs7tYx9ssaM60HVKd/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwa69YWWJjxrgT06n39px-zFq6zgxgfwia5Ix9TpWOIc8EETQVNJwby_yYYdISk2Nxx/exec";
 const READ_TOKEN = "4Hd2gCErhTJZwli_a3WWjPb6zlkYsxmMsxCOg5cz5uM";
 // ====================
 
