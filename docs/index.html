@@ -1,41 +1,42 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Запись на встречу</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- Flatpickr -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" />
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/material_blue.css" />
+  <title>Запись</title>
 
-  <!-- CSS -->
   <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ru.js"></script>
 </head>
 
 <body>
+  <!-- Блокировка всего интерфейса при загрузках -->
+  <div id="globalLock" class="lock active">Загрузка расписания...</div>
+
   <div class="container">
-    <!-- STEP 1 -->
-    <div id="step1" class="step active">
-      <h1>Выбор даты</h1>
-      <p class="subtitle">Встречи проводятся по будням с 9:00 до 18:00</p>
+    <h1>Запись на встречу</h1>
+    <div class="subtitle">Встречи проводятся по будням с 9:00 до 18:00</div>
 
+    <!-- STEP 1: Выбор даты -->
+    <div class="step active" id="step1">
       <div class="date-input-wrapper">
-        <input type="text" id="dateInput" placeholder="Выбрать дату" readonly />
-        <div id="dateLockHint" class="date-lock-hint" style="display:none;"></div>
+        <input id="dateInput" type="text" placeholder="Выберите дату" readonly />
+        <div class="date-lock-hint" id="dateHint">Загрузка свободных слотов...</div>
       </div>
-
-      <div class="info-message">Выберите удобную дату, затем время.</div>
     </div>
 
-    <!-- STEP 2 -->
-    <div id="step2" class="step">
-      <h1>Выбор времени</h1>
-      <p class="subtitle" id="selectedDateDisplay"></p>
+    <!-- STEP 2: Выбор времени -->
+    <div class="step" id="step2">
+      <div class="subtitle" id="selectedDateDisplay"></div>
 
-      <div id="loadingSlots" class="loader">
+      <div id="loadingSlots" class="loader" style="display:none;">
         <div class="spinner"></div>
-        <p>Загрузка свободных слотов...</p>
+        <div>Загрузка свободных слотов...</div>
       </div>
 
       <div id="timeSlots" class="time-slots" style="display:none;"></div>
@@ -43,38 +44,26 @@
       <button class="nav-button secondary" onclick="goToStep(1)">Назад</button>
     </div>
 
-    <!-- STEP 3 -->
-    <div id="step3" class="step">
-      <h1>Подтверждение</h1>
-      <p class="subtitle">Проверьте данные перед записью</p>
+    <!-- STEP 3: Подтверждение -->
+    <div class="step" id="step3">
+      <div class="subtitle">Проверьте данные перед записью</div>
 
       <div class="summary">
         <div class="summary-item">
-          <span class="summary-label">Дата:</span>
-          <span class="summary-value" id="confirmDate"></span>
+          <div class="summary-label">Дата</div>
+          <div class="summary-value" id="confirmDate"></div>
         </div>
         <div class="summary-item">
-          <span class="summary-label">Время:</span>
-          <span class="summary-value" id="confirmTime"></span>
-        </div>
-        <div class="summary-item">
-          <span class="summary-label">Длительность:</span>
-          <span class="summary-value">1 час</span>
+          <div class="summary-label">Время</div>
+          <div class="summary-value" id="confirmTime"></div>
         </div>
       </div>
 
       <button class="nav-button primary" onclick="confirmBooking()">Подтвердить запись</button>
-      <button class="nav-button secondary" onclick="goToStep(2)">Назад</button>
+      <button class="nav-button secondary" onclick="goToStep(1)">Изменить</button>
     </div>
   </div>
 
-  <!-- Telegram SDK -->
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <!-- Flatpickr -->
-  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-  <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ru.js"></script>
-
-  <!-- JS -->
   <script src="app.js"></script>
 </body>
 </html>

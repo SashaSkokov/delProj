@@ -2,9 +2,12 @@ const tg = window.Telegram.WebApp;
 tg.expand();
 tg.ready();
 
+// === ВСТАВЬ СЮДА (твои значения) ===
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwa69YWWJjxrgT06n39px-zFq6zgxgfwia5Ix9TpWOIc8EETQVNJwby_yYYdISk2Nxx/exec";
 const READ_TOKEN = "4Hd2gCErhTJZwli_a3WWjPb6zlkYsxmMsxCOg5cz5uM";
+// ====================
 
+// Telegram theme
 document.documentElement.style.setProperty("--tg-theme-bg-color", tg.themeParams.bg_color || "#ffffff");
 document.documentElement.style.setProperty("--tg-theme-text-color", tg.themeParams.text_color || "#000000");
 document.documentElement.style.setProperty("--tg-theme-button-color", tg.themeParams.button_color || "#3390ec");
@@ -15,6 +18,30 @@ let selectedTime = null;
 
 // date -> [{time, status}]
 let slotsByDate = new Map();
+
+let isLoading = false;
+let fp = null;
+
+function $(id) {
+  return document.getElementById(id);
+}
+
+function setGlobalLock(on, text = "Загрузка расписания...") {
+  const el = $("globalLock");
+  if (!el) return;
+  el.textContent = text;
+  el.classList.toggle("active", !!on);
+}
+
+function setHint(text) {
+  const el = $("dateHint");
+  if (el) el.textContent = text;
+}
+
+function setDatePickerEnabled(enabled) {
+  const input = $("dateInput");
+  if (input) input.disabled = !enabled;
+}
 
 function iso(date) {
   const y = date.getFullYear();
@@ -73,11 +100,11 @@ function getOccupiedTimes(dateStr) {
 
 function goToStep(n) {
   document.querySelectorAll(".step").forEach((s) => s.classList.remove("active"));
-  document.getElementById(`step${n}`).classList.add("active");
+  $(`step${n}`).classList.add("active");
 }
 
 function renderTimeSlots(dateStr) {
-  const container = document.getElementById("timeSlots");
+  const container = $("timeSlots");
   container.innerHTML = "";
 
   const occupied = new Set(getOccupiedTimes(dateStr));
@@ -99,8 +126,8 @@ function renderTimeSlots(dateStr) {
         selectedTime = time;
 
         setTimeout(() => {
-          document.getElementById("confirmDate").textContent = formatDateDisplay(selectedDate);
-          document.getElementById("confirmTime").textContent = selectedTime;
+          $("confirmDate").textContent = formatDateDisplay(selectedDate);
+          $("confirmTime").textContent = selectedTime;
           goToStep(3);
         }, 150);
       });
@@ -109,7 +136,7 @@ function renderTimeSlots(dateStr) {
     container.appendChild(slot);
   });
 
-  document.getElementById("loadingSlots").style.display = "none";
+  $("loadingSlots").style.display = "none";
   container.style.display = "grid";
 }
 
@@ -117,11 +144,11 @@ async function loadTimeSlots() {
   goToStep(2);
 
   const dateStr = formatDateForAPI(selectedDate);
-  document.getElementById("selectedDateDisplay").textContent = formatDateDisplay(selectedDate);
-  document.getElementById("loadingSlots").style.display = "block";
-  document.getElementById("timeSlots").style.display = "none";
+  $("selectedDateDisplay").textContent = formatDateDisplay(selectedDate);
+  $("loadingSlots").style.display = "block";
+  $("timeSlots").style.display = "none";
 
-  // если на дату нет свободных слотов — сразу сообщаем и не даём дальше
+  // если на дату нет свободных слотов — возвращаем к выбору даты
   if (!dateHasFreeSlots(dateStr)) {
     tg.showAlert("На выбранную дату свободных слотов нет.");
     goToStep(1);
@@ -131,7 +158,6 @@ async function loadTimeSlots() {
   renderTimeSlots(dateStr);
 }
 
-// кнопка подтверждения
 window.confirmBooking = function () {
   if (!selectedDate || !selectedTime) {
     tg.showAlert("Выбери дату и время.");
@@ -146,9 +172,14 @@ window.goToStep = goToStep;
 // init
 (async () => {
   try {
+    isLoading = true;
+    setDatePickerEnabled(false);
+    setHint("Загрузка свободных слотов...");
+    setGlobalLock(true, "Загрузка расписания...");
+
     await loadSlotsWindow();
 
-    flatpickr("#dateInput", {
+    fp = flatpickr("#dateInput", {
       locale: "ru",
       inline: false,
       minDate: "today",
@@ -157,22 +188,46 @@ window.goToStep = goToStep;
         (date) => date.getDay() === 0 || date.getDay() === 6, // выходные
         (date) => {
           const dateStr = iso(date);
-          // отключаем дату, если нет свободных слотов (в т.ч. если GAS уже выкинул прошедшие часы)
+          // отключаем дату, если нет свободных слотов (в т.ч. если GAS выкинул прошедшие часы)
           return !dateHasFreeSlots(dateStr);
         }
       ],
       onChange: async (selectedDates) => {
-        if (selectedDates.length > 0) {
+        if (isLoading) return;
+        if (selectedDates.length === 0) return;
+
+        try {
+          isLoading = true;
+          setDatePickerEnabled(false);
+          setGlobalLock(true, "Загрузка слотов...");
+
           selectedDate = selectedDates[0];
-          // обновим данные на всякий случай (кэш/сдвиг времени)
+          selectedTime = null;
+
+          // обновим данные (на случай смены времени/кэша)
           await loadSlotsWindow();
+
           await loadTimeSlots();
+        } catch (e) {
+          console.error(e);
+          tg.showAlert("❌ Не удалось загрузить слоты.");
+          goToStep(1);
+        } finally {
+          setGlobalLock(false);
+          setDatePickerEnabled(true);
+          isLoading = false;
         }
       }
     });
 
+    setHint("Выберите дату.");
   } catch (e) {
     console.error(e);
     tg.showAlert("❌ Не удалось загрузить расписание.");
+    setHint("Ошибка загрузки.");
+  } finally {
+    setGlobalLock(false);
+    setDatePickerEnabled(true);
+    isLoading = false;
   }
 })();
