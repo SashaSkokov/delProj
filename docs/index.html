@@ -1,102 +1,80 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8" />
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
-    />
-    <title>Запись на встречу</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Запись на встречу</title>
 
-    <!-- Flatpickr -->
-    <link
-        rel="stylesheet"
-        href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css"
-    />
-    <link
-        rel="stylesheet"
-        href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/material_blue.css"
-    />
+  <!-- Flatpickr -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/material_blue.css" />
 
-    <!-- Наши стили -->
-    <link rel="stylesheet" href="styles.css"/>
+  <!-- CSS -->
+  <link rel="stylesheet" href="styles.css" />
 </head>
+
 <body>
-<div class="container">
-    <!-- ШАГ 1: Выбор даты -->
+  <div class="container">
+    <!-- STEP 1 -->
     <div id="step1" class="step active">
-        <h1>📅 Выберите дату</h1>
-        <p class="subtitle">Встречи проводятся по будням с 9:00 до 18:00</p>
+      <h1>Выбор даты</h1>
+      <p class="subtitle">Встречи проводятся по будням с 9:00 до 18:00</p>
 
-        <div class="date-input-wrapper">
-            <input
-                type="text"
-                id="dateInput"
-                placeholder="Нажмите для выбора даты"
-                readonly
-            />
-        </div>
+      <div class="date-input-wrapper">
+        <input type="text" id="dateInput" placeholder="Выбрать дату" readonly />
+        <div id="dateLockHint" class="date-lock-hint" style="display:none;"></div>
+      </div>
 
-        <div class="info-message">
-            ℹ️ Доступны только рабочие дни (Пн-Пт)
-        </div>
+      <div class="info-message">Выберите удобную дату, затем время.</div>
     </div>
 
-    <!-- ШАГ 2: Выбор времени -->
+    <!-- STEP 2 -->
     <div id="step2" class="step">
-        <h1>⏰ Выберите время</h1>
-        <p class="subtitle" id="selectedDateDisplay"></p>
+      <h1>Выбор времени</h1>
+      <p class="subtitle" id="selectedDateDisplay"></p>
 
-        <div id="loadingSlots" class="loader">
-            <div class="spinner"></div>
-            <p>Загрузка свободных слотов...</p>
-        </div>
+      <div id="loadingSlots" class="loader">
+        <div class="spinner"></div>
+        <p>Загрузка свободных слотов...</p>
+      </div>
 
-        <div id="timeSlots" class="time-slots" style="display: none;"></div>
+      <div id="timeSlots" class="time-slots" style="display:none;"></div>
 
-        <button class="nav-button secondary" onclick="goToStep(1)">
-            ← Изменить дату
-        </button>
+      <button class="nav-button secondary" onclick="goToStep(1)">Назад</button>
     </div>
 
-    <!-- ШАГ 3: Подтверждение -->
+    <!-- STEP 3 -->
     <div id="step3" class="step">
-        <h1>✅ Подтверждение</h1>
-        <p class="subtitle">Проверьте данные перед записью</p>
+      <h1>Подтверждение</h1>
+      <p class="subtitle">Проверьте данные перед записью</p>
 
-        <div class="summary">
-            <div class="summary-item">
-                <span class="summary-label">📅 Дата</span>
-                <span class="summary-value" id="confirmDate"></span>
-            </div>
-            <div class="summary-item">
-                <span class="summary-label">⏰ Время</span>
-                <span class="summary-value" id="confirmTime"></span>
-            </div>
-            <div class="summary-item">
-                <span class="summary-label">📍 Место</span>
-                <span class="summary-value">Отдел продаж</span>
-            </div>
+      <div class="summary">
+        <div class="summary-item">
+          <span class="summary-label">Дата:</span>
+          <span class="summary-value" id="confirmDate"></span>
         </div>
+        <div class="summary-item">
+          <span class="summary-label">Время:</span>
+          <span class="summary-value" id="confirmTime"></span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Длительность:</span>
+          <span class="summary-value">1 час</span>
+        </div>
+      </div>
 
-        <button class="nav-button primary" onclick="confirmBooking()">
-            ✅ Подтвердить запись
-        </button>
-
-        <button class="nav-button secondary" onclick="goToStep(2)">
-            ← Изменить время
-        </button>
+      <button class="nav-button primary" onclick="confirmBooking()">Подтвердить запись</button>
+      <button class="nav-button secondary" onclick="goToStep(2)">Назад</button>
     </div>
-</div>
+  </div>
 
-<!-- Telegram SDK -->
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <!-- Telegram SDK -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <!-- Flatpickr -->
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ru.js"></script>
 
-<!-- Flatpickr -->
-<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ru.js"></script>
-
-<!-- Наш JS -->
-<script src="app.js"></script>
+  <!-- JS -->
+  <script src="app.js"></script>
 </body>
 </html>
