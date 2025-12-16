@@ -8,10 +8,12 @@ const READ_TOKEN = "4Hd2gCErhTJZwli_a3WWjPb6zlkYsxmMsxCOg5cz5uM";
 // ====================
 
 // Telegram theme
-document.documentElement.style.setProperty("--tg-theme-bg-color", tg.themeParams.bg_color || "#ffffff");
-document.documentElement.style.setProperty("--tg-theme-text-color", tg.themeParams.text_color || "#000000");
-document.documentElement.style.setProperty("--tg-theme-button-color", tg.themeParams.button_color || "#3390ec");
-document.documentElement.style.setProperty("--tg-theme-button-text-color", tg.themeParams.button_text_color || "#ffffff");
+document.documentElement.style.setProperty("--tg-theme-bg-color", "#ffffff");
+document.documentElement.style.setProperty("--tg-theme-text-color", "#000000");
+document.documentElement.style.setProperty("--tg-theme-hint-color", "#999999");
+document.documentElement.style.setProperty("--tg-theme-secondary-bg-color", "#f4f4f5");
+document.documentElement.style.setProperty("--tg-theme-button-color", "#3390ec");
+document.documentElement.style.setProperty("--tg-theme-button-text-color", "#ffffff");
 
 let selectedDate = null;
 let selectedTime = null;

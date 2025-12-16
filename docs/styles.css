@@ -50,7 +50,8 @@ h1 {
   padding: 24px;
   text-align: center;
 
-  background: rgba(255, 255, 255, 0.75); color: #000; backdrop-filter: blur(2px);
+  /* Можно сделать светлой: rgba(255,255,255,.75) */
+  background: rgba(0, 0, 0, 0.45);
   color: #fff;
   z-index: 9999;
 
@@ -103,24 +104,63 @@ h1 {
   font-weight: 500;
 }
 
-/* Flatpickr кастомизация */
-.flatpickr-calendar {
-  background: var(--tg-theme-bg-color) !important;
-  border-radius: 12px !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
+#dateInput:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
 }
 
-.flatpickr-day.selected {
-  background: var(--tg-theme-button-color) !important;
-  border-color: var(--tg-theme-button-color) !important;
+/* Подсказка под датой */
+.date-lock-hint {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--tg-theme-hint-color);
+  text-align: center;
+}
+
+/* ===== Flatpickr: принудительно белый фон календаря ===== */
+.flatpickr-calendar {
+  background: #ffffff !important;          /* ключевой фикс */
+  color: #000000 !important;
+  border-radius: 12px !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
+  border: 1px solid rgba(0,0,0,0.06) !important;
+}
+
+.flatpickr-months,
+.flatpickr-weekdays {
+  background: #ffffff !important;
+}
+
+.flatpickr-current-month,
+.flatpickr-weekday {
+  color: #000000 !important;
+}
+
+.flatpickr-day {
+  color: #000000 !important;
+  border-radius: 10px !important;
 }
 
 .flatpickr-day.today {
   border-color: var(--tg-theme-button-color) !important;
 }
 
-.flatpickr-day:hover {
-  background: var(--tg-theme-secondary-bg-color) !important;
+.flatpickr-day.selected,
+.flatpickr-day.selected:hover {
+  background: var(--tg-theme-button-color) !important;
+  border-color: var(--tg-theme-button-color) !important;
+  color: var(--tg-theme-button-text-color) !important;
+}
+
+.flatpickr-day:hover,
+.flatpickr-day:focus {
+  background: #f2f3f5 !important;
+}
+
+.flatpickr-day.disabled,
+.flatpickr-day.disabled:hover {
+  color: rgba(0,0,0,0.25) !important;
+  background: transparent !important;
 }
 
 /* Временные слоты */
@@ -241,9 +281,7 @@ h1 {
 }
 
 @keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
+  to { transform: rotate(360deg); }
 }
 
 /* Сообщения */
@@ -265,15 +303,7 @@ h1 {
   font-size: 13px;
 }
 
-/* Подсказка под датой */
-.date-lock-hint {
-  margin-top: 8px;
-  font-size: 13px;
-  color: var(--tg-theme-hint-color);
-  text-align: center;
-}
-
-/* Небольшая адаптация */
+/* Адаптация */
 @media (max-width: 360px) {
   .time-slots {
     grid-template-columns: repeat(2, 1fr);
