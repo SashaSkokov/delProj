@@ -13,14 +13,12 @@ document.documentElement.style.setProperty("--tg-theme-text-color", tg.themePara
 document.documentElement.style.setProperty("--tg-theme-button-color", tg.themeParams.button_color || "#3390ec");
 document.documentElement.style.setProperty("--tg-theme-button-text-color", tg.themeParams.button_text_color || "#ffffff");
 
-const STATUS_FREE = "свободно";
-const TIMES = ["09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00"];
+let selectedDate = null;
+let selectedTime = null;
+let occupiedSlots = []; // ["09:00", ...]
+let slotsByDate = new Map(); // "YYYY-MM-DD" -> [{time,status}]
 
-let fp = null;                 // flatpickr instance
-let selectedDate = null;       // Date
-let selectedTime = null;       // "HH:MM"
-let slotsByDate = new Map();   // "YYYY-MM-DD" -> [{time,status}]
-let occupiedSlots = [];        // ["09:00", ...]
+const STATUS_FREE = "свободно";
 
 function iso(date) {
   const y = date.getFullYear();
@@ -51,35 +49,13 @@ async function loadSlots14Days() {
 
   slotsByDate.clear();
   for (const s of (data.slots || [])) {
-    const date = String(s.date || "").trim();
-    const time = String(s.time || "").trim();
-    const status = String(s.status || "").trim().toLowerCase();
+    const date = s.date;
+    const time = s.time;
+    const status = String(s.status || "").toLowerCase();
 
-    if (!date || !time) continue;
     if (!slotsByDate.has(date)) slotsByDate.set(date, []);
     slotsByDate.get(date).push({ time, status });
   }
-}
-
-function computeDisabledDates() {
-  // disable only dates that exist in map AND have no free slots
-  const disabled = [];
-  for (const [date, arr] of slotsByDate.entries()) {
-    const hasFree = arr.some(x => x.status === STATUS_FREE);
-    if (!hasFree) disabled.push(date); // "YYYY-MM-DD"
-  }
-  return disabled;
-}
-
-function applyDisabledDates() {
-  if (!fp) return;
-
-  const disabledDates = computeDisabledDates();
-  fp.set("disable", [
-    (date) => date.getDay() === 0 || date.getDay() === 6, // выходные
-    ...disabledDates, // полностью занятые дни
-  ]);
-  fp.redraw();
 }
 
 function getOccupiedTimes(dateStr) {
@@ -96,7 +72,9 @@ function renderTimeSlots() {
   const container = document.getElementById("timeSlots");
   container.innerHTML = "";
 
-  for (const time of TIMES) {
+  const times = ["09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00"];
+
+  for (const time of times) {
     const slot = document.createElement("div");
     slot.className = "time-slot";
 
@@ -122,12 +100,14 @@ function selectTime(time, event) {
   event.target.classList.add("selected");
 
   selectedTime = time;
+
+  // Без задержки — сразу показываем подтверждение
   document.getElementById("confirmDate").textContent = formatDateDisplay(selectedDate);
   document.getElementById("confirmTime").textContent = selectedTime;
   goToStep(3);
 }
 
-async function loadTimeSlotsForSelectedDate() {
+async function loadTimeSlots() {
   goToStep(2);
 
   const dateStr = formatDateForAPI(selectedDate);
@@ -136,65 +116,48 @@ async function loadTimeSlotsForSelectedDate() {
   document.getElementById("loadingSlots").style.display = "block";
   document.getElementById("timeSlots").style.display = "none";
 
-  // данные должны быть уже загружены через loadSlots14Days()
   occupiedSlots = getOccupiedTimes(dateStr);
   renderTimeSlots();
 }
 
-// confirm from HTML button
-window.confirmBooking = async function () {
-  // Опционально “золотая середина”: перепроверка прямо перед подтверждением
-  await loadSlots14Days();
-  applyDisabledDates();
-
-  const dateStr = formatDateForAPI(selectedDate);
-  const occupiedNow = getOccupiedTimes(dateStr);
-  if (occupiedNow.includes(selectedTime)) {
-    tg.showAlert("❌ Это время уже занято, выбери другое.");
-    return;
-  }
-
-  tg.sendData(JSON.stringify({ date: dateStr, time: selectedTime }));
+// Чтобы работали inline onclick из HTML
+window.confirmBooking = function () {
+  const data = { date: formatDateForAPI(selectedDate), time: selectedTime };
+  tg.sendData(JSON.stringify(data));
 };
 
 window.goToStep = goToStep;
 
-// init
+// Инициализация календаря
 (async () => {
   try {
     await loadSlots14Days();
 
-    fp = flatpickr("#dateInput", {
+    flatpickr("#dateInput", {
       locale: "ru",
       inline: false,
-      disableMobile: true,
       minDate: "today",
       dateFormat: "d.m.Y",
-      disable: [
-        (date) => date.getDay() === 0 || date.getDay() === 6,
-        ...computeDisabledDates(),
-      ],
-      onOpen: async () => {
-        // если календарь открыли — обновим данные, чтобы disabled-дни были свежими
-        await loadSlots14Days();
-        applyDisabledDates();
-      },
+      disable: [(date) => date.getDay() === 0 || date.getDay() === 6],
       onChange: async (selectedDates) => {
         if (selectedDates.length === 0) return;
 
         selectedDate = selectedDates[0];
-        selectedTime = null;
 
-        // обновляем слоты и сразу обновляем disabled-дни
+        // Ключевое: обновляем расписание при каждом выборе даты
         await loadSlots14Days();
-        applyDisabledDates();
 
-        await loadTimeSlotsForSelectedDate();
+        const dateStr = formatDateForAPI(selectedDate);
+        const arr = slotsByDate.get(dateStr) || [];
+        const hasFree = arr.some(x => x.status === STATUS_FREE);
+        if (!hasFree) {
+          tg.showAlert("❌ На выбранную дату нет свободных слотов.");
+          return;
+        }
+
+        await loadTimeSlots();
       },
     });
-
-    // на случай, если после init что-то изменилось
-    applyDisabledDates();
   } catch (e) {
     console.error(e);
     tg.showAlert("❌ Не удалось загрузить расписание.");
