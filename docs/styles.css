@@ -319,3 +319,15 @@ h1 {
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+/* Сделать недоступные дни календаря визуально серыми */
+.flatpickr-day.disabled,
+.flatpickr-day.disabled:hover,
+.flatpickr-day.prevMonthDay.disabled,
+.flatpickr-day.nextMonthDay.disabled {
+  background: #f1f3f5 !important;
+  color: rgba(0, 0, 0, 0.35) !important;
+  border-color: transparent !important;
+  opacity: 1 !important;
+  cursor: not-allowed !important;
+}
