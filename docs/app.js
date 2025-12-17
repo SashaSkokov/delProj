@@ -190,7 +190,6 @@ window.goToStep = goToStep;
       minDate: "today",
       dateFormat: "d.m.Y",
       disable: [
-        disable: [
           (date) => date.getDay() === 0 || date.getDay() === 6, // выходные
           (date) => {
             const dateStr = iso(date);
