@@ -7,13 +7,11 @@ const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwa69YWWJjxrgT0
 const READ_TOKEN = "4Hd2gCErhTJZwli_a3WWjPb6zlkYsxmMsxCOg5cz5uM";
 // ====================
 
-// Force light theme (ignore Telegram theme)
-document.documentElement.style.setProperty("--tg-theme-bg-color", "#ffffff");
-document.documentElement.style.setProperty("--tg-theme-text-color", "#000000");
-document.documentElement.style.setProperty("--tg-theme-hint-color", "#999999");
-document.documentElement.style.setProperty("--tg-theme-secondary-bg-color", "#f4f4f5");
-document.documentElement.style.setProperty("--tg-theme-button-color", "#3390ec");
-document.documentElement.style.setProperty("--tg-theme-button-text-color", "#ffffff");
+// Telegram theme
+document.documentElement.style.setProperty("--tg-theme-bg-color", tg.themeParams.bg_color || "#ffffff");
+document.documentElement.style.setProperty("--tg-theme-text-color", tg.themeParams.text_color || "#000000");
+document.documentElement.style.setProperty("--tg-theme-button-color", tg.themeParams.button_color || "#3390ec");
+document.documentElement.style.setProperty("--tg-theme-button-text-color", tg.themeParams.button_text_color || "#ffffff");
 
 let selectedDate = null;
 let selectedTime = null;
@@ -81,11 +79,9 @@ async function loadSlotsWindow() {
 
   slotsByDate.clear();
   for (const s of (data.slots || [])) {
-    const date = String(s.date || "").trim();
-    const time = String(s.time || "").trim();
-    const status = String(s.status || "").trim().toLowerCase();
-
-    if (!date || !time) continue;
+    const date = s.date;
+    const time = s.time;
+    const status = (s.status || "").toLowerCase();
 
     if (!slotsByDate.has(date)) slotsByDate.set(date, []);
     slotsByDate.get(date).push({ time, status });
@@ -94,14 +90,12 @@ async function loadSlotsWindow() {
 
 function dateHasFreeSlots(dateStr) {
   const arr = slotsByDate.get(dateStr) || [];
-  return arr.some(x => String(x.status || "").trim().toLowerCase() === "свободно");
+  return arr.some(x => x.status === "свободно");
 }
 
 function getOccupiedTimes(dateStr) {
   const arr = slotsByDate.get(dateStr) || [];
-  return arr
-    .filter(x => String(x.status || "").trim().toLowerCase() !== "свободно")
-    .map(x => String(x.time || "").trim());
+  return arr.filter(x => x.status !== "свободно").map(x => x.time);
 }
 
 function goToStep(n) {
@@ -154,6 +148,7 @@ async function loadTimeSlots() {
   $("loadingSlots").style.display = "block";
   $("timeSlots").style.display = "none";
 
+  // если на дату нет свободных слотов — возвращаем к выбору даты
   if (!dateHasFreeSlots(dateStr)) {
     tg.showAlert("На выбранную дату свободных слотов нет.");
     goToStep(1);
@@ -190,12 +185,13 @@ window.goToStep = goToStep;
       minDate: "today",
       dateFormat: "d.m.Y",
       disable: [
-          (date) => date.getDay() === 0 || date.getDay() === 6, // выходные
-          (date) => {
-            const dateStr = iso(date);
-            return !dateHasFreeSlots(dateStr); // нет свободных слотов
-          }
-        ],
+        (date) => date.getDay() === 0 || date.getDay() === 6, // выходные
+        (date) => {
+          const dateStr = iso(date);
+          // отключаем дату, если нет свободных слотов (в т.ч. если GAS выкинул прошедшие часы)
+          return !dateHasFreeSlots(dateStr);
+        }
+      ],
       onChange: async (selectedDates) => {
         if (isLoading) return;
         if (selectedDates.length === 0) return;
@@ -208,7 +204,9 @@ window.goToStep = goToStep;
           selectedDate = selectedDates[0];
           selectedTime = null;
 
+          // обновим данные (на случай смены времени/кэша)
           await loadSlotsWindow();
+
           await loadTimeSlots();
         } catch (e) {
           console.error(e);
