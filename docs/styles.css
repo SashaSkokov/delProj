@@ -103,25 +103,62 @@ h1 {
   font-weight: 500;
 }
 
-/* Flatpickr кастомизация */
+/* ===== Flatpickr: ВСЕГДА светлый календарь (игнор TG dark) ===== */
 .flatpickr-calendar {
-  background: var(--tg-theme-bg-color) !important;
+  background: #ffffff !important;
+  color: #000000 !important;
   border-radius: 12px !important;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
 }
 
-.flatpickr-day.selected {
-  background: var(--tg-theme-button-color) !important;
-  border-color: var(--tg-theme-button-color) !important;
+.flatpickr-months,
+.flatpickr-weekdays,
+.flatpickr-innerContainer,
+.flatpickr-rContainer {
+  background: #ffffff !important;
+}
+
+.flatpickr-current-month,
+.flatpickr-weekday,
+.flatpickr-monthDropdown-months,
+.flatpickr-monthDropdown-months option {
+  color: #000000 !important;
+}
+
+.flatpickr-day {
+  color: #000000 !important;
+  border-radius: 10px !important;
 }
 
 .flatpickr-day.today {
   border-color: var(--tg-theme-button-color) !important;
 }
 
-.flatpickr-day:hover {
-  background: var(--tg-theme-secondary-bg-color) !important;
+.flatpickr-day.selected,
+.flatpickr-day.selected:hover {
+  background: var(--tg-theme-button-color) !important;
+  border-color: var(--tg-theme-button-color) !important;
+  color: var(--tg-theme-button-text-color) !important;
 }
+
+.flatpickr-day:hover,
+.flatpickr-day:focus {
+  background: #f2f3f5 !important;
+}
+
+/* серые недоступные даты (как на твоём скрине) */
+.flatpickr-day.disabled,
+.flatpickr-day.disabled:hover,
+.flatpickr-day.prevMonthDay.disabled,
+.flatpickr-day.nextMonthDay.disabled {
+  background: #f1f3f5 !important;
+  color: rgba(0, 0, 0, 0.35) !important;
+  border-color: transparent !important;
+  opacity: 1 !important;
+  cursor: not-allowed !important;
+}
+
 
 /* Временные слоты */
 .time-slots {
