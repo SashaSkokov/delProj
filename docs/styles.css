@@ -326,3 +326,5 @@ h1 {
   cursor: not-allowed !important;
   opacity: 1 !important;
 }
+
+.flatpickr-calendar { outline: 3px solid red !important; }
