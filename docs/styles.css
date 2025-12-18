@@ -306,3 +306,17 @@ h1 {
   color: rgba(0, 0, 0, 0.22) !important;
   opacity: 1 !important;
 }
+/* Disabled даты: правильные классы flatpickr */
+.flatpickr-day.flatpickr-disabled,
+.flatpickr-day.flatpickr-disabled:hover,
+.flatpickr-day.notAllowed,
+.flatpickr-day.notAllowed:hover,
+.flatpickr-day.prevMonthDay.flatpickr-disabled,
+.flatpickr-day.nextMonthDay.flatpickr-disabled {
+  background: transparent !important;
+  color: rgba(0, 0, 0, 0.22) !important; /* бледно-серый как на скрине */
+  opacity: 1 !important;
+  cursor: not-allowed !important;
+}
+
+.flatpickr-day.flatpickr-disabled { background: red !important; }
