@@ -297,15 +297,6 @@ h1 {
   color: #000000 !important;
 }
 
-/* Серые недоступные даты (как на первом скрине: бледный текст, без заливки) */
-.flatpickr-day.disabled,
-.flatpickr-day.disabled:hover,
-.flatpickr-day.prevMonthDay.disabled,
-.flatpickr-day.nextMonthDay.disabled {
-  background: transparent !important;
-  color: rgba(0, 0, 0, 0.22) !important;
-  opacity: 1 !important;
-}
 /* Disabled даты: правильные классы flatpickr */
 .flatpickr-day.flatpickr-disabled,
 .flatpickr-day.flatpickr-disabled:hover,
