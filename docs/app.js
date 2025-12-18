@@ -86,6 +86,14 @@ async function loadSlotsWindow() {
     if (!slotsByDate.has(date)) slotsByDate.set(date, []);
     slotsByDate.get(date).push({ time, status });
   }
+  console.log("dates from GAS:", Array.from(slotsByDate.keys()).slice(0, 30));
+}
+
+function isSelectableDate(date) {
+  const dateStr = iso(date);
+  const arr = slotsByDate.get(dateStr);
+  if (!arr || arr.length === 0) return false; // дня нет в данных -> нельзя
+  return arr.some(x => (x.status || "").trim().toLowerCase() === "свободно");
 }
 
 function dateHasFreeSlots(dateStr) {
@@ -185,12 +193,9 @@ window.goToStep = goToStep;
       minDate: "today",
       dateFormat: "d.m.Y",
       disable: [
-          (date) => date.getDay() === 0 || date.getDay() === 6, // выходные
-          (date) => {
-            const dateStr = iso(date);
-            return !dateHasFreeSlots(dateStr);
-          }
-      ],
+          (date) => date.getDay() === 0 || date.getDay() === 6,
+          (date) => !isSelectableDate(date),
+        ],
       onChange: async (selectedDates) => {
         if (isLoading) return;
         if (selectedDates.length === 0) return;
