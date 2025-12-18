@@ -188,9 +188,9 @@ window.goToStep = goToStep;
           (date) => date.getDay() === 0 || date.getDay() === 6, // выходные
           (date) => {
             const dateStr = iso(date);
-            return !dateHasFreeSlots(dateStr); // нет свободных слотов -> выключаем дату
+            return !dateHasFreeSlots(dateStr);
           }
-        ],
+      ],
       onChange: async (selectedDates) => {
         if (isLoading) return;
         if (selectedDates.length === 0) return;
