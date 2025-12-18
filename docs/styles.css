@@ -280,8 +280,14 @@ h1 {
   }
 }
 
-/* --- Flatpickr: всегда светлый + видимые disabled (ВНЕ @media) --- */
-.flatpickr-calendar,
+/* --- Flatpickr: всегда светлый, округлый, disabled серые --- */
+.flatpickr-calendar {
+  background: #ffffff !important;
+  border-radius: 12px !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
+  overflow: hidden !important; /* важно для округления углов */
+}
+
 .flatpickr-months,
 .flatpickr-weekdays,
 .flatpickr-innerContainer,
@@ -292,22 +298,41 @@ h1 {
 .flatpickr-current-month,
 .flatpickr-weekday,
 .flatpickr-monthDropdown-months,
-.flatpickr-monthDropdown-months option,
+.flatpickr-monthDropdown-months option {
+  color: #000000 !important;
+}
+
+/* Обычные дни */
 .flatpickr-day {
   color: #000000 !important;
 }
 
-/* Disabled даты: правильные классы flatpickr */
+/* Выбранный день (как у тебя было) */
+.flatpickr-day.selected,
+.flatpickr-day.selected:hover {
+  background: var(--tg-theme-button-color) !important;
+  border-color: var(--tg-theme-button-color) !important;
+  color: var(--tg-theme-button-text-color) !important;
+}
+
+/* Disabled дни (серые как на твоём референсе) */
 .flatpickr-day.flatpickr-disabled,
 .flatpickr-day.flatpickr-disabled:hover,
 .flatpickr-day.notAllowed,
 .flatpickr-day.notAllowed:hover,
 .flatpickr-day.prevMonthDay.flatpickr-disabled,
-.flatpickr-day.nextMonthDay.flatpickr-disabled {
+.flatpickr-day.nextMonthDay.flatpickr-disabled,
+.flatpickr-day.disabled,
+.flatpickr-day.disabled:hover {
   background: transparent !important;
-  color: rgba(0, 0, 0, 0.22) !important; /* бледно-серый как на скрине */
+  color: rgba(0, 0, 0, 0.22) !important;
   opacity: 1 !important;
   cursor: not-allowed !important;
 }
 
-.flatpickr-day.flatpickr-disabled { background: red !important; }
+/* Важно: hover не должен “перекрашивать” disabled */
+.flatpickr-day.flatpickr-disabled:hover,
+.flatpickr-day.notAllowed:hover,
+.flatpickr-day.disabled:hover {
+  background: transparent !important;
+}
