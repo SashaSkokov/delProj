@@ -185,12 +185,13 @@ window.goToStep = goToStep;
       minDate: "today",
       dateFormat: "d.m.Y",
       disable: [
-          (date) => date.getDay() === 0 || date.getDay() === 6, // выходные
-          (date) => {
-            const dateStr = iso(date);
-            return !dateHasFreeSlots(dateStr); // нет свободных слотов -> запрещаем дату
-          }
-        ],
+        (date) => date.getDay() === 0 || date.getDay() === 6, // выходные
+        (date) => {
+          const dateStr = iso(date);
+          // отключаем дату, если нет свободных слотов (в т.ч. если GAS выкинул прошедшие часы)
+          return !dateHasFreeSlots(dateStr);
+        }
+      ],
       onChange: async (selectedDates) => {
         if (isLoading) return;
         if (selectedDates.length === 0) return;
