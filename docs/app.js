@@ -150,7 +150,7 @@ function renderTimeSlots(dateStr) {
   const todayStr = iso(new Date());
   const nowMin = nowMinutesLocal();
 
-  const times = ["09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00"];
+  const times = ["10:00","11:00","12:00","13:00","14:00","15:00","16:00"];
 
   for (const time of times) {
     // если GAS вообще не прислал этот слот на дату — скрываем (не рисуем)
