@@ -140,6 +140,15 @@ function goToStep(n) {
   $(`step${n}`)?.classList.add("active");
 }
 
+window.backToTime = async function () {
+  if (!selectedDate) {
+    goToStep(1);
+    return;
+  }
+  selectedTime = null;           // сбрасываем выбранное время
+  await loadTimeSlots();         // шаг 2 + renderTimeSlots(selectedDate)
+};
+
 function renderTimeSlots(dateStr) {
   const container = $("timeSlots");
   container.innerHTML = "";
