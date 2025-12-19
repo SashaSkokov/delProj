@@ -182,6 +182,7 @@ function renderTimeSlots(dateStr) {
         setTimeout(() => {
           $("confirmDate").textContent = formatDateDisplay(selectedDate);
           $("confirmTime").textContent = selectedTime;
+          $("confirmDuration").textContent = "1 час";
           goToStep(3);
         }, 150);
       });
