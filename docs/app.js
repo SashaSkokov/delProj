@@ -1,4 +1,5 @@
 const tg = window.Telegram.WebApp;
+
 tg.expand();
 tg.ready();
 
@@ -18,7 +19,6 @@ let selectedTime = null;
 
 // date -> [{time, status}]
 let slotsByDate = new Map();
-
 let isLoading = false;
 let fp = null;
 
@@ -55,9 +55,21 @@ function formatDateForAPI(date) {
 }
 
 function formatDateDisplay(date) {
-  const days = ["воскресенье","понедельник","вторник","среда","четверг","пятница","суббота"];
-  const months = ["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"];
+  const days = ["воскресенье", "понедельник", "вторник", "среда", "четверг", "пятница", "суббота"];
+  const months = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"];
   return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}, ${days[date.getDay()]}`;
+}
+
+function parseTimeToMinutes(t) {
+  // "09:00" -> 540
+  const [hh, mm] = String(t || "").split(":").map((x) => parseInt(x, 10));
+  if (Number.isNaN(hh) || Number.isNaN(mm)) return null;
+  return hh * 60 + mm;
+}
+
+function nowMinutesLocal() {
+  const d = new Date();
+  return d.getHours() * 60 + d.getMinutes();
 }
 
 async function loadSlotsWindow() {
@@ -73,42 +85,59 @@ async function loadSlotsWindow() {
   let data;
   try {
     data = JSON.parse(text);
-  } catch {
+  } catch (e) {
     throw new Error(`Bad response from GAS: ${text.slice(0, 200)}`);
   }
 
   slotsByDate.clear();
-  for (const s of (data.slots || [])) {
-    const date = s.date;
-    const time = s.time;
-    const status = (s.status || "").toLowerCase();
 
+  for (const s of (data.slots || [])) {
+    const date = String(s.date || "").trim();
+    const time = String(s.time || "").trim();
+    const status = String(s.status || "").trim().toLowerCase();
+
+    if (!date || !time) continue;
     if (!slotsByDate.has(date)) slotsByDate.set(date, []);
     slotsByDate.get(date).push({ time, status });
   }
+
+  // сортируем времена внутри дня (чтобы было красиво и стабильно)
+  for (const [d, arr] of slotsByDate.entries()) {
+    arr.sort((a, b) => (parseTimeToMinutes(a.time) ?? 0) - (parseTimeToMinutes(b.time) ?? 0));
+  }
+
   console.log("dates from GAS:", Array.from(slotsByDate.keys()).slice(0, 30));
+}
+
+function dateHasFreeSlots(dateStr) {
+  const arr = slotsByDate.get(dateStr) || [];
+  return arr.some((x) => (x.status || "").trim().toLowerCase() === "свободно");
 }
 
 function isSelectableDate(date) {
   const dateStr = iso(date);
   const arr = slotsByDate.get(dateStr);
   if (!arr || arr.length === 0) return false; // дня нет в данных -> нельзя
-  return arr.some(x => (x.status || "").trim().toLowerCase() === "свободно");
-}
-
-function dateHasFreeSlots(dateStr) {
-  const arr = slotsByDate.get(dateStr) || [];
-  return arr.some(x => x.status === "свободно");
+  return arr.some((x) => (x.status || "").trim().toLowerCase() === "свободно");
 }
 
 function getOccupiedTimes(dateStr) {
   const arr = slotsByDate.get(dateStr) || [];
-  return arr.filter(x => x.status !== "свободно").map(x => x.time);
+  return arr
+    .filter((x) => (x.status || "").trim().toLowerCase() !== "свободно")
+    .map((x) => x.time);
+}
+
+function getFreeTimes(dateStr) {
+  const arr = slotsByDate.get(dateStr) || [];
+  return arr
+    .filter((x) => (x.status || "").trim().toLowerCase() === "свободно")
+    .map((x) => x.time);
 }
 
 function goToStep(n) {
   document.querySelectorAll(".step").forEach((s) => s.classList.remove("active"));
-  $(`step${n}`).classList.add("active");
+  $(`step${n}`)?.classList.add("active");
 }
 
 function renderTimeSlots(dateStr) {
@@ -116,9 +145,25 @@ function renderTimeSlots(dateStr) {
   container.innerHTML = "";
 
   const occupied = new Set(getOccupiedTimes(dateStr));
-  const times = ["09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00"];
+  const free = new Set(getFreeTimes(dateStr));
 
-  times.forEach((time) => {
+  const todayStr = iso(new Date());
+  const nowMin = nowMinutesLocal();
+
+  const times = ["09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00"];
+
+  for (const time of times) {
+    // если GAS вообще не прислал этот слот на дату — скрываем (не рисуем)
+    if (!occupied.has(time) && !free.has(time)) continue;
+
+    // если сегодня и время уже прошло/идёт — скрываем слот полностью
+    if (dateStr === todayStr) {
+      const tMin = parseTimeToMinutes(time);
+      if (tMin !== null && tMin <= nowMin) {
+        continue;
+      }
+    }
+
     const slot = document.createElement("div");
     slot.className = "time-slot";
 
@@ -131,6 +176,7 @@ function renderTimeSlots(dateStr) {
       slot.addEventListener("click", (event) => {
         document.querySelectorAll(".time-slot").forEach((s) => s.classList.remove("selected"));
         event.currentTarget.classList.add("selected");
+
         selectedTime = time;
 
         setTimeout(() => {
@@ -142,7 +188,7 @@ function renderTimeSlots(dateStr) {
     }
 
     container.appendChild(slot);
-  });
+  }
 
   $("loadingSlots").style.display = "none";
   container.style.display = "grid";
@@ -153,6 +199,7 @@ async function loadTimeSlots() {
 
   const dateStr = formatDateForAPI(selectedDate);
   $("selectedDateDisplay").textContent = formatDateDisplay(selectedDate);
+
   $("loadingSlots").style.display = "block";
   $("timeSlots").style.display = "none";
 
@@ -171,6 +218,7 @@ window.confirmBooking = function () {
     tg.showAlert("Выбери дату и время.");
     return;
   }
+
   const data = { date: formatDateForAPI(selectedDate), time: selectedTime };
   tg.sendData(JSON.stringify(data));
 };
@@ -193,9 +241,9 @@ window.goToStep = goToStep;
       minDate: "today",
       dateFormat: "d.m.Y",
       disable: [
-          (date) => date.getDay() === 0 || date.getDay() === 6,
-          (date) => !isSelectableDate(date),
-        ],
+        (date) => date.getDay() === 0 || date.getDay() === 6,
+        (date) => !isSelectableDate(date),
+      ],
       onChange: async (selectedDates) => {
         if (isLoading) return;
         if (selectedDates.length === 0) return;
@@ -210,7 +258,6 @@ window.goToStep = goToStep;
 
           // обновим данные (на случай смены времени/кэша)
           await loadSlotsWindow();
-
           await loadTimeSlots();
         } catch (e) {
           console.error(e);
@@ -221,7 +268,7 @@ window.goToStep = goToStep;
           setDatePickerEnabled(true);
           isLoading = false;
         }
-      }
+      },
     });
 
     setHint("Выберите дату.");
