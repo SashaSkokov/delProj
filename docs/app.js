@@ -3,7 +3,6 @@ const tg = window.Telegram.WebApp;
 tg.expand();
 tg.ready();
 
-// === ВСТАВЬ СЮДА (твои значения) ===
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwa69YWWJjxrgT06n39px-zFq6zgxgfwia5Ix9TpWOIc8EETQVNJwby_yYYdISk2Nxx/exec";
 const READ_TOKEN = "4Hd2gCErhTJZwli_a3WWjPb6zlkYsxmMsxCOg5cz5uM";
 // ====================
@@ -101,7 +100,7 @@ async function loadSlotsWindow() {
     slotsByDate.get(date).push({ time, status });
   }
 
-  // сортируем времена внутри дня (чтобы было красиво и стабильно)
+  // сортируем времена внутри дня
   for (const [d, arr] of slotsByDate.entries()) {
     arr.sort((a, b) => (parseTimeToMinutes(a.time) ?? 0) - (parseTimeToMinutes(b.time) ?? 0));
   }
@@ -159,10 +158,9 @@ function renderTimeSlots(dateStr) {
   const todayStr = iso(new Date());
   const nowMin = nowMinutesLocal();
 
-  const times = ["10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00"];
+  const times = (slotsByDate.get(dateStr) || []).map(x => x.time).sort((a,b)=>(parseTimeToMinutes(a)??0)-(parseTimeToMinutes(b)??0));
 
   for (const time of times) {
-    // если GAS вообще не прислал этот слот на дату — скрываем (не рисуем)
     if (!occupied.has(time) && !free.has(time)) continue;
 
     // если сегодня и время уже прошло/идёт — скрываем слот полностью
@@ -251,7 +249,7 @@ window.goToStep = goToStep;
       minDate: "today",
       dateFormat: "d.m.Y",
       disable: [
-        (date) => date.getDay() === 0 || date.getDay() === 6,
+        (date) => date.getDay() === 0,
         (date) => !isSelectableDate(date),
       ],
       onChange: async (selectedDates) => {
@@ -266,7 +264,7 @@ window.goToStep = goToStep;
           selectedDate = selectedDates[0];
           selectedTime = null;
 
-          // обновим данные (на случай смены времени/кэша)
+          // обновление данные (на случай смены времени/кэша)
           await loadSlotsWindow();
           await loadTimeSlots();
         } catch (e) {

@@ -20,17 +20,18 @@
 
   <div class="container">
     <h1>Запись на встречу</h1>
-    <div class="subtitle">Встречи проводятся по будням с 10:00 до 17:00</div>
+    <div class="subtitle">Встречи: Пн–Пт 10:00–18:00, Сб 10:00–16:00, Вс — нет записей</div>
 
-    <!-- STEP 1: Выбор даты -->
+    <!-- Выбор даты -->
     <div class="step active" id="step1">
       <div class="date-input-wrapper">
         <input id="dateInput" type="text" placeholder="Выберите дату" readonly />
         <div class="date-lock-hint" id="dateHint">Загрузка свободных слотов...</div>
+        <div class="info-message">Если нужный слот занят — позвоните в ОП, мы постараемся подобрать время вручную.</div>
       </div>
     </div>
 
-    <!-- STEP 2: Выбор времени -->
+    <!-- Выбор времени -->
     <div class="step" id="step2">
       <div class="subtitle" id="selectedDateDisplay"></div>
 
@@ -44,7 +45,7 @@
       <button class="nav-button secondary" onclick="goToStep(1)">Назад</button>
     </div>
 
-    <!-- STEP 3: Подтверждение -->
+    <!-- Подтверждение -->
     <div class="step" id="step3">
       <div class="subtitle">Проверьте данные перед записью</div>
 

@@ -285,7 +285,7 @@ h1 {
   background: #ffffff !important;
   border-radius: 12px !important;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
-  overflow: hidden !important; /* важно для округления углов */
+  overflow: hidden !important;
 }
 
 .flatpickr-months,
@@ -307,7 +307,7 @@ h1 {
   color: #000000 !important;
 }
 
-/* Выбранный день (как у тебя было) */
+/* Выбранный день */
 .flatpickr-day.selected,
 .flatpickr-day.selected:hover {
   background: var(--tg-theme-button-color) !important;
@@ -315,7 +315,7 @@ h1 {
   color: var(--tg-theme-button-text-color) !important;
 }
 
-/* Disabled дни (серые как на твоём референсе) */
+/* Disabled дни */
 .flatpickr-day.flatpickr-disabled,
 .flatpickr-day.flatpickr-disabled:hover,
 .flatpickr-day.notAllowed,
@@ -330,7 +330,6 @@ h1 {
   cursor: not-allowed !important;
 }
 
-/* Важно: hover не должен “перекрашивать” disabled */
 .flatpickr-day.flatpickr-disabled:hover,
 .flatpickr-day.notAllowed:hover,
 .flatpickr-day.disabled:hover {
