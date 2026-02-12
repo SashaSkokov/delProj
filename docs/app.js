@@ -229,6 +229,7 @@ window.confirmBooking = function () {
 
   const data = { date: formatDateForAPI(selectedDate), time: selectedTime };
   tg.sendData(JSON.stringify(data));
+  tg.close();
 };
 
 window.goToStep = goToStep;
